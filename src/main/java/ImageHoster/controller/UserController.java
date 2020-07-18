@@ -8,11 +8,13 @@ import ImageHoster.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.servlet.http.HttpSession;
 import java.util.List;
+import java.util.regex.Pattern;
 
 
 @Controller
@@ -39,10 +41,24 @@ public class UserController {
 
     //This controller method is called when the request pattern is of type 'users/registration' and also the incoming request is of POST type
     //This method calls the business logic and after the user record is persisted in the database, directs to login page
+    //We define a method checkValidPassword for validating Password strength
     @RequestMapping(value = "users/registration", method = RequestMethod.POST)
-    public String registerUser(User user) {
-        userService.registerUser(user);
-        return "redirect:/users/login";
+    public String registerUser(User user, Model model, BindingResult bindingResult) {
+        boolean valid_Password = checkValidPassword(user.getPassword());
+        if(bindingResult.hasErrors()){
+            //error
+        }
+        if(valid_Password){
+            userService.registerUser(user);
+            return "users/login";
+
+        }else {
+            String error = "Password must contain atleast 1 alphabet, 1 number & 1 special character";
+            model.addAttribute("passwordTypeError","Password must contain atleast 1 alphabet, 1 number & 1 special character");
+            model.addAttribute("User",user);
+            return "users/registration";
+
+        }
     }
 
     //This controller method is called when the request pattern is of type 'users/login'
@@ -79,4 +95,16 @@ public class UserController {
         model.addAttribute("images", images);
         return "index";
     }
+    //This method uses Java Regex, we use matches method to compare with regex
+    //After comparision if char is contained it returns true else false
+    private boolean checkValidPassword(String password) {
+        String letterPattern = ".*[a-zA-Z]+.*";
+        String numberPattern = ".*[0-9]+.*";
+        String otherCharPattern = ".*[^a-zA-Z0-9].*";
+        if(Pattern.matches(letterPattern,password) && Pattern.matches(numberPattern,password) && Pattern.matches(otherCharPattern,password)){
+            return true;
+        }
+        return false;
+    }
+
 }
